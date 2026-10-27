@@ -1,0 +1,284 @@
+/* fonte servida daqui mesmo (19/10): sem ir ao Google Fonts, duas conexoes a menos no 4G do anuncio (Press Start 2P, licenca OFL) */
+  @font-face { font-family:"Press Start 2P"; src:url(extras/pressstart2p.woff2) format("woff2"); font-display:swap; font-style:normal; font-weight:400; }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent;
+      user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; }
+  html, body { height:100%; overscroll-behavior:none; -webkit-text-size-adjust:100%; text-size-adjust:100%; }   /* iPhone deitado nao aumenta a letra sozinho */   /* sem puxar para atualizar (Chrome) e sem quique (iPhone) */
+  :root { --ink:#0b3b3c; --cream:#f3f1ee; --coral:#ff8d7d; --coral-lo:#c9503c; --mint:#9fe4b2; --teal:#63b6b5; }
+  body { background:#0b0f15; height:100dvh; overflow:hidden; touch-action:none; color:var(--cream); font-family:"Press Start 2P", monospace; }
+  /* ===== gabinete: a arte do Magnific do formato do aparelho, inteira na tela ===== */
+  #palco { position:fixed; inset:0; overflow:hidden; }
+  .ext { position:absolute; background-repeat:no-repeat; background-size:100% 100%; pointer-events:none; }   /* borda da arte esticada ate a beira da tela */
+  #arte { position:absolute; left:0; top:0; background-repeat:no-repeat; background-size:100% 100%; transform-origin:0 0;
+          transition:transform .75s cubic-bezier(.2,.75,.2,1); will-change:transform; }
+  #arte.sem-anim { transition:none; }
+  #tela { position:absolute; background:#000; overflow:hidden; }
+  canvas#scr { position:absolute; left:0; top:0; width:100%; height:100%; display:block; image-rendering:auto; background:#000; }
+  /* vidro do CRT: linhas de varredura por linha do jogo (224), vinheta e reflexo; sem flicker */
+  #tela .vidro { position:absolute; inset:0; pointer-events:none;
+    background:linear-gradient(118deg, rgba(255,255,255,.075) 0%, rgba(255,255,255,.02) 28%, rgba(255,255,255,0) 42%),
+               radial-gradient(125% 110% at 50% 48%, rgba(0,0,0,0) 60%, rgba(0,0,0,.32) 100%),
+               repeating-linear-gradient(to bottom, rgba(0,0,0,.13) 0, rgba(0,0,0,.13) .1786%, rgba(0,0,0,0) .1786%, rgba(0,0,0,0) .4464%); }
+  #moldura { position:absolute; pointer-events:none; background-repeat:no-repeat; background-size:100% 100%; }
+  /* aviso de virar a tela (so no celular em pe): o icone gira de vez em quando */
+  #virar { position:absolute; pointer-events:none; display:none; background-repeat:no-repeat; background-size:100% 100%; transform-origin:48% 58%;
+           animation:virar 3.6s ease-in-out 1.2s infinite; }
+  body.lay-em_pe #virar { display:block; }
+  @keyframes virar { 0%, 46%, 100% { transform:rotate(0deg); } 56% { transform:rotate(-16deg); } 68% { transform:rotate(11deg); } 78% { transform:rotate(-5deg); } 86% { transform:rotate(2deg); } }
+  /* ===== controles desenhados na arte: a tampa e uma janela da propria arte que desce ao apertar ===== */
+  .ctl { position:absolute; touch-action:none; cursor:pointer; border-radius:50%; }
+  .ctl.pilula { border-radius:999px; }
+  .ctl.alavanca { border-radius:0; }
+  .ctl .tampa { position:absolute; border-radius:50%; background-repeat:no-repeat; background-position:var(--bx) var(--by); pointer-events:none;
+                transition:background-position .045s linear, filter .045s linear, box-shadow .045s linear; }
+  .ctl.pilula .tampa { border-radius:999px; }
+  .ctl.on .tampa { background-position:var(--bx) var(--by2); filter:brightness(.84) saturate(1.06); box-shadow:inset 0 var(--sb) var(--sb2) rgba(0,0,0,.58); }
+  .ctl.aceso:not(.on) .tampa { animation:aceso .5s ease-in-out infinite alternate; }
+  @keyframes aceso { from { filter:brightness(1); box-shadow:0 0 0 rgba(255,236,160,0); } to { filter:brightness(1.24); box-shadow:0 0 var(--halo) rgba(255,236,160,.85); } }
+  .ctl.mudo .tampa { filter:grayscale(.8) brightness(.62); }
+  .ctl.mudo::after { content:""; position:absolute; left:18%; right:18%; top:50%; height:max(2px, 9%); background:#e0392b; border-radius:2px; transform:rotate(-20deg); box-shadow:0 0 0 1px rgba(0,0,0,.45); pointer-events:none; }
+  .alavanca .bola { position:absolute; background-repeat:no-repeat; background-size:100% 100%; pointer-events:none; transition:transform .06s ease-out; will-change:transform; }
+  /* teclas do computador, como etiqueta no painel */
+  .tecla { position:absolute; transform:translate(-50%, 0); font-size:var(--ft, 8px); line-height:1; color:#fff3d6; white-space:nowrap; pointer-events:none;
+           background:rgba(6,20,21,.82); padding:.38em .55em .32em; border-radius:.4em; box-shadow:0 0 0 1px rgba(243,241,238,.22); display:none; letter-spacing:.04em; }
+  body.lay-desk .tecla { display:block; }
+  #hint { position:fixed; left:0; right:0; bottom:max(6px, env(safe-area-inset-bottom)); display:none; justify-content:center; gap:14px; flex-wrap:wrap;
+          font-size:7px; letter-spacing:1px; color:rgba(243,241,238,.5); pointer-events:none; z-index:3; }
+  #hint b { color:var(--mint); font-weight:normal; }
+  body.lay-desk #hint { display:flex; }
+  body.lay-desk.zoom #hint { opacity:0; transition:opacity .4s; }
+  body.lay-desk.zoom .alavanca .bola { opacity:0; transition:opacity .3s; }   /* 26/10: no zoom da luta a bola do controle invadia o canto da TV */
+  /* ===== modo toque (celular e tablet): a tela do jogo direto, sem o fliperama; controles por cima do jogo (deitado) ou embaixo (em pe).
+     Botoes e bola da alavanca vem da arte do fliperama; o resto e so a moldura da tela. ===== */
+  #seguro { position:fixed; left:0; top:0; width:0; height:0; visibility:hidden; pointer-events:none;
+            padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+  .ctl .rot, .alavanca .base, .alavanca .dica { display:none; }
+  body.lay-toque #arte { background:none !important; }
+  body.lay-toque #moldura, body.lay-toque #virar, body.lay-toque .ext, body.lay-toque .tecla, body.lay-toque #hint { display:none !important; }
+  body.lay-toque #tela { border-radius:6px; box-shadow:0 0 0 3px #041919, 0 0 0 5px rgba(255,141,125,.42), 0 14px 30px rgba(0,0,0,.6); }
+  body.lay-toque .ctl[data-k] { background-repeat:no-repeat; border-radius:50%; }
+  body.lay-toque .ctl.pilula { border-radius:999px; }
+  body.lay-toque .ctl .rot { display:block; position:absolute; left:50%; top:100%; margin-top:4px; transform:translateX(-50%); white-space:nowrap; font-size:8px; line-height:1;
+                             letter-spacing:.06em; color:#f3f1ee; text-shadow:0 2px 0 #041919, 0 0 4px rgba(0,0,0,.7); pointer-events:none; }
+  body.lay-toque .ctl .rot.cima { top:auto; bottom:100%; margin:0 0 5px; }
+  /* nome dentro da tampa (como os icones do Free Fire): afunda junto quando aperta */
+  body.lay-toque .ctl .rot.dentro { margin:0; transform:translate(-50%, -50%); color:#0b3b3c; text-shadow:0 1px 0 rgba(255,255,255,.4); letter-spacing:.02em; transition:transform .045s linear; }
+  body.lay-toque .ctl.on .rot.dentro { transform:translate(-50%, calc(-50% + var(--desce, 3px))); }
+  /* a area de toque passa da borda do botao: o polegar erra para fora e o jogo pega o botao mais perto */
+  body.lay-toque .ctl[data-k]::before { content:""; position:absolute; inset:-12px; border-radius:50%; }
+  body.lay-toque .ctl.pilula::before { inset:-10px; border-radius:999px; }
+  #dpad-ext { position:absolute; display:none; touch-action:none; }
+  body.lay-toque.em-luta #dpad-ext { display:block; }
+  /* em pe: dica de girar o celular (a tela do jogo fica maior), sem travar nada */
+  #gire { position:absolute; display:none; align-items:center; gap:10px; pointer-events:none; }
+  #gire i { flex:0 0 auto; width:46px; height:27px; background:url(gabinete/em_pe_virar.webp) center/contain no-repeat; transform-origin:48% 58%; animation:virar 3.6s ease-in-out 1.2s infinite; }
+  #gire span { font-size:7px; line-height:1.6; letter-spacing:.04em; color:rgba(243,241,238,.62); }
+  body.lay-toque .alavanca { border-radius:0; }
+  body.lay-toque .alavanca .base { display:block; position:absolute; border-radius:50%; transform:translate(-50%, -50%); pointer-events:none;
+                                   background:radial-gradient(circle, rgba(4,25,26,.25) 0 46%, rgba(4,25,26,.62) 47% 100%);
+                                   box-shadow:inset 0 0 0 3px rgba(255,141,125,.6), 0 6px 16px rgba(0,0,0,.35); transition:opacity .15s; }
+  body.lay-toque .alavanca .bola { position:absolute; border-radius:50%; transform:translate(-50%, -50%); background-repeat:no-repeat; transition:none;
+                                   box-shadow:0 6px 10px rgba(0,0,0,.45); }
+  body.lay-toque .alavanca:not(.ativo) .base, body.lay-toque .alavanca:not(.ativo) .bola { opacity:.55; }
+  body.lay-toque .alavanca .dica { display:block; position:absolute; transform:translateX(-50%); white-space:normal; text-align:center; line-height:1.6; font-size:9px; letter-spacing:.06em; background:rgba(4,12,20,.62); padding:1px 6px;
+                                   color:rgba(243,241,238,.6); pointer-events:none; transition:opacity .3s; }
+  body.lay-toque .alavanca.usou .dica { opacity:0; }
+  /* ===== deitado (pedido de 18/10, maximo aproveitamento da tela): o jogo na altura toda, sem moldura, e os controles POR CIMA dele,
+     translucidos (Free Fire, Street Fighter IV de celular). PAUSA (na luta) e SOM (nos menus) no canto de cima a direita. ===== */
+  body.lay-toque.sobre #tela, body.lay-toque.em-pe #tela { border-radius:0; box-shadow:none; }   /* 19/10: de borda a borda, sem moldura */
+  body.lay-toque .ctl[data-k]:not(.pilula), body.lay-toque #dpad { transition:opacity .25s ease, visibility .25s; }
+  body.lay-toque.sobre .ctl[data-k]:not(.pilula) { opacity:var(--op-ctl, .6); }
+  body.lay-toque.sobre .ctl[data-k].on { opacity:.95; transition:none; }
+  body.lay-toque.sobre .ctl.pilula { opacity:.85; }
+  body.lay-toque.sobre .alavanca:not(.ativo) .base, body.lay-toque.sobre .alavanca:not(.ativo) .bola { opacity:var(--op-ctl, .6); }
+  body.lay-toque.sobre .alavanca.ativo .base { opacity:.8; }
+  /* anel do HIPER: o medidor enche em volta do botao (Brawl Stars); cheio, o botao acende */
+  body.lay-toque #b-h::after { content:""; position:absolute; inset:-5px; border-radius:50%; pointer-events:none;
+    background:conic-gradient(#ffd21f calc(var(--hp, 0) * 1%), rgba(243,241,238,.22) 0);
+    -webkit-mask:radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3.5px)); mask:radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3.5px)); }
+  /* controles de luta so do LUTA! ao nocaute; nos menus a tela fica so com o jogo (e o SOM) */
+  body.lay-toque:not(.hud-luta) .ctl[data-k]:not(.pilula), body.lay-toque:not(.hud-luta) #dpad, body.lay-toque:not(.hud-luta) #dpad-ext { opacity:0; visibility:hidden; pointer-events:none; }
+  body.lay-toque:not(.hud-luta) #p-start { display:none; }
+  body.lay-toque.sobre.hud-luta #p-som { display:none; }
+  /* referencia da luta no celular (Magnific, 18/10): pausa como icone quadrado II no canto; base da alavanca com as 4 setas */
+  body.lay-toque.sobre #p-start { border-radius:10px; background:rgba(10,16,30,.5) !important; box-shadow:0 0 0 2px rgba(243,241,238,.8), 0 3px 8px rgba(0,0,0,.4); }
+  body.lay-toque.sobre #p-start .tampa, body.lay-toque.sobre #p-start .rot { display:none !important; }
+  body.lay-toque.sobre #p-start::after { content:""; position:absolute; left:50%; top:50%; width:36%; height:46%; transform:translate(-50%, -50%); pointer-events:none;
+    background:linear-gradient(90deg, #f3f1ee 0 33%, transparent 33% 67%, #f3f1ee 67% 100%); }
+  body.lay-toque.sobre .alavanca .base { background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cg fill='%23f3f1ee' fill-opacity='.85'%3E%3Cpath d='M50 7 43 16h14z'/%3E%3Cpath d='M50 93 43 84h14z'/%3E%3Cpath d='M7 50 16 43v14z'/%3E%3Cpath d='M93 50 84 43v14z'/%3E%3C/g%3E%3C/svg%3E") center/100% 100% no-repeat,
+    radial-gradient(circle, rgba(4,25,26,.25) 0 46%, rgba(4,25,26,.62) 47% 100%); }
+  /* em pe, fora da luta: o espaco embaixo do jogo vira o aviso de girar o celular (o jogo e deitado, como o Free Fire) */
+  body.lay-toque.em-pe:not(.hud-luta) #gire { left:50% !important; top:var(--gire-y, 60%) !important; width:min(300px, 82vw) !important; height:auto !important;
+    transform:translate(-50%, -50%); flex-direction:column; gap:20px; text-align:center; }
+  body.lay-toque.em-pe:not(.hud-luta) #gire i { width:132px; height:78px; }
+  body.lay-toque.em-pe:not(.hud-luta) #gire span { font-size:10px; line-height:1.9; color:rgba(243,241,238,.78); }
+  /* ===== em pe (19/10, avaliacao com as skills de jogo): a luta e so deitada. Em pe entra a tela de entrada na identidade do jogo
+     (o story VERSUS da campanha) pedindo para girar; o toque liga o "modo deitado por dentro" (html.girado): o jogo gira 90 graus
+     e a pessoa so vira o celular. Serve no app que nao gira a tela (Instagram, Facebook); onde o navegador gira, vale o deitado normal. ===== */
+  #vire { position:fixed; inset:0; z-index:15; display:none; align-items:center; justify-content:center; cursor:pointer; touch-action:none;
+          background:linear-gradient(180deg, #16336e 0%, #0a1838 100%); }   /* 27/10: a arte nova tem fundo de mapa em cima e embaixo */
+  body.vire #vire { display:flex; }
+  #vire .arte { position:relative; width:100%; max-height:100%; aspect-ratio:9 / 16; background:url(extras/vire_fundo.webp) center/cover no-repeat; }
+  #vire .toque { position:absolute; left:50%; top:78.2%; width:58%; aspect-ratio:421 / 41; transform:translate(-50%, -50%); background:url(extras/vire_toque.webp) center/contain no-repeat;
+                 animation:vireToque 1.1s ease-in-out infinite; }
+  @keyframes vireToque { 0%, 100% { transform:translate(-50%, -50%) scale(1); opacity:1; } 50% { transform:translate(-50%, -50%) scale(1.06); opacity:.78; } }
+  #vire .gire { position:absolute; left:50%; top:89%; transform:translate(-50%, -50%); display:flex; align-items:center; gap:10px; padding:8px 14px; border-radius:8px;
+                background:rgba(8,12,30,.74); box-shadow:0 0 0 2px rgba(243,241,238,.22); }
+  #vire .gire i { flex:0 0 auto; width:46px; height:27px; background:url(gabinete/em_pe_virar.webp) center/contain no-repeat; transform-origin:48% 58%; animation:virar 3.6s ease-in-out .8s infinite; }
+  #vire .gire span { font-size:9px; line-height:1; letter-spacing:.06em; color:#f3f1ee; white-space:nowrap; }
+  /* 23/10 (layout do Magnific, 13 EM PE): GIRE O CELULAR e TOQUE PARA JOGAR num painel so, emoldurado, no pe da arte (antes o toque flutuava sobre os lutadores e o gire era uma pilula solta) */
+  #vire .painel { position:absolute; left:50%; top:88%; transform:translate(-50%, -50%); width:78%; display:flex; flex-direction:column; align-items:center; gap:9px; padding:11px 10px 13px;
+                  background:rgba(14,20,44,.94); box-shadow:0 0 0 2px #0d0a10, 0 0 0 4px #f3e6c8, 0 0 0 6px #0d0a10, 0 10px 24px rgba(0,0,0,.55); }
+  #vire .painel .gire { position:static; transform:none; padding:0; background:none; box-shadow:none; border-radius:0; }
+  #vire .painel .toque { position:static; width:88%; transform:none; animation:vireToque2 1.1s ease-in-out infinite; }
+  @keyframes vireToque2 { 0%, 100% { transform:scale(1); opacity:1; } 50% { transform:scale(1.06); opacity:.78; } }
+  @media (prefers-reduced-motion: reduce) { #vire .painel .toque { animation:none; } }
+  /* 27/10 (pedido: "de a opcao da pessoa abrir no navegador na chamada principal", como no jogo do Lula x Flavio): a arte nova
+     (extras/vire_fundo.webp, v2710/monta_v2.py vire) deixa o pe livre no fundo de mapa; o painel fica preso ao pe, longe dos rostos
+     em qualquer tela, e ganha ABRIR NO NAVEGADOR, so no navegador de app (html.em-app) */
+  #vire .painel { top:auto; bottom:max(10px, 2.2%); transform:translateX(-50%); }
+  #b-navegador { display:none; align-items:center; justify-content:center; gap:8px; width:88%; margin-top:2px; padding:9px 10px 8px; cursor:pointer;
+                 font-family:"Press Start 2P", monospace; font-size:8px; line-height:1; letter-spacing:.04em; color:#f3f1ee; background:#0b3b3c;
+                 border:2px solid #9fe4b2; box-shadow:0 3px 0 #0d0a10; border-radius:0; touch-action:manipulation; }
+  #b-navegador i { flex:0 0 auto; width:10px; height:10px; background:linear-gradient(#9fe4b2, #9fe4b2) right top / 10px 2px no-repeat, linear-gradient(#9fe4b2, #9fe4b2) right top / 2px 10px no-repeat; position:relative; }
+  #b-navegador i::after { content:''; position:absolute; right:1px; top:1px; width:12px; height:2px; background:#9fe4b2; transform-origin:right center; transform:rotate(-45deg); }
+  #b-navegador:active { transform:translateY(2px); box-shadow:0 1px 0 #0d0a10; }
+  html.em-app #b-navegador { display:flex; }
+  #abre-fora { position:fixed; inset:0; z-index:26; display:none; align-items:center; justify-content:center; padding:14px; touch-action:none;
+               background:radial-gradient(ellipse at 50% 46%, rgba(3,10,14,.58) 0%, rgba(3,10,14,.84) 100%); }
+  #abre-fora.on { display:flex; }
+  #abre-fora .card { margin:auto; }
+  #abre-fora .af-pontos { display:inline-block; padding:0 5px; border:1.5px solid currentColor; border-radius:5px; font-weight:800; letter-spacing:.1em; }
+  #abre-fora .card .cta { margin-top:4px; }
+  @media (max-height: 600px) {   /* iPhone pequeno dentro do app (375x560): painel mais baixo para nao encostar na oferta da arte */
+    #vire .painel { width:72%; gap:5px; padding:7px 8px 8px; bottom:8px; }
+    #vire .gire i { width:38px; height:22px; }
+    #vire .painel .toque { width:84%; }
+    #b-navegador { padding:6px 8px 5px; font-size:7px; }
+  }
+  html.girado #palco { inset:auto; left:0; top:0; transform-origin:0 0; }
+  /* ===== camada DOM por cima do jogo: recompensa / CTA ===== */
+  #over { position:fixed; inset:0; z-index:20; display:none; align-items:flex-start; justify-content:center; padding:14px; background:rgba(3,12,12,.5); overflow-y:auto; -webkit-overflow-scrolling:touch; touch-action:pan-y; }
+  #over .card { margin:auto; }
+  #over.on { display:flex; }
+  .card { background:var(--cream); color:var(--ink); border-radius:6px; padding:18px 16px 16px; max-width:330px; width:100%;
+          box-shadow:0 12px 30px rgba(0,0,0,.5), 0 0 0 4px var(--coral); text-align:center; font-family:"Press Start 2P", monospace; }
+  .card .wm { width:132px; height:18px; margin:0 auto 12px; background:#0b3b3c; -webkit-mask:url(marca.png) center/contain no-repeat; mask:url(marca.png) center/contain no-repeat; }
+  .card h2 { font-size:11px; line-height:1.7; margin-bottom:8px; }
+  .card p { font-size:7px; line-height:1.9; opacity:.85; margin-bottom:10px; }
+  .card .selo { display:inline-block; background:var(--coral); color:#fff; font-size:10px; padding:8px 12px; border-radius:4px; margin:4px 0 12px; box-shadow:0 3px 0 var(--coral-lo); }
+  .card a.cta { display:block; background:var(--ink); color:var(--cream); text-decoration:none; font-size:9px; padding:14px 10px; border-radius:4px; box-shadow:0 4px 0 #031414; line-height:1.6; }
+  .card a.cta:active { transform:translateY(2px); box-shadow:0 2px 0 #031414; }
+  .card small { display:block; font-size:5px; line-height:1.8; opacity:.6; margin-top:12px; }
+  .card button.voltar { margin-top:12px; background:none; border:0; color:var(--ink); font-family:inherit; font-size:6px; letter-spacing:1px; opacity:.6; text-decoration:underline; cursor:pointer; }
+  /* criador: campo do nome, botoes e card do lutador */
+  .card .cta { display:block; width:100%; border:0; cursor:pointer; font-family:inherit; background:var(--ink); color:var(--cream); text-decoration:none; font-size:9px; padding:14px 10px; border-radius:4px; box-shadow:0 4px 0 #031414; line-height:1.6; }
+  .card .cta.alt { background:#e3ddd1; color:var(--ink); box-shadow:0 4px 0 #b3aa9a; margin-top:10px; }
+  .card .cta:active { transform:translateY(2px); }
+  .card button.voltar { display:block; margin:12px auto 0; }
+  .card input { display:block; width:100%; margin:6px 0 4px; padding:10px 8px; border:3px solid var(--ink); border-radius:4px; background:#fff; color:var(--ink);
+                font-family:"Press Start 2P", monospace; font-size:16px; letter-spacing:2px; text-align:center; text-transform:uppercase;
+                -webkit-user-select:text; user-select:text; touch-action:manipulation; }
+  .card .aviso { min-height:12px; color:#c9503c; margin:4px 0 8px; }
+  /* captacao no cartao final: e-mail obrigatorio, WhatsApp opcional, aceite; o texto digitado fica em fonte do sistema a 16px (sem zoom no iPhone) */
+  .card form.lead { text-align:left; margin:2px 0 4px; }
+  .card .campo { display:block; margin:0 0 9px; }
+  .card .campo span { display:block; font-size:6px; letter-spacing:1px; margin:0 0 3px; }
+  .card .campo span i { font-style:normal; opacity:.6; }
+  .card .campo input { margin:0; padding:10px; font-family:-apple-system, system-ui, "Segoe UI", Roboto, sans-serif; font-size:16px; letter-spacing:0; text-align:left; text-transform:none; }
+  .card .campo input[aria-invalid="true"] { border-color:#c9503c; }
+  .card .aceite { display:flex; gap:8px; align-items:flex-start; font-size:6px; line-height:1.8; margin:2px 0 4px; cursor:pointer; }
+  .card .aceite input { flex:0 0 20px; width:20px; height:20px; margin:0; padding:0; border:0; accent-color:#0b3b3c; }
+  .card .aceite a { color:var(--ink); }
+  .card .mel { position:absolute !important; left:-9999px !important; width:1px !important; height:1px !important; opacity:0 !important; }
+  /* cartao com formulario no celular deitado: duas colunas (texto a esquerda, formulario a direita), cabe sem rolar */
+  @media (orientation: landscape) and (max-height: 520px) {
+    #over { padding:8px 12px; }
+    #over .card.com-form { max-width:640px; display:grid; grid-template-columns:minmax(0, 1fr) minmax(0, 1.08fr); column-gap:18px; align-items:start; padding:12px 16px 10px; }
+    #over .card.com-form > * { grid-column:1; }
+    #over .card.com-form > form.lead { grid-column:2; grid-row:1 / span 7; margin:0; }
+    #over .card.com-form .wm { margin:2px auto 8px; } #over .card.com-form h2 { font-size:9px; margin-bottom:6px; }
+    #over .card.com-form .selo { margin:2px 0 8px; justify-self:center; } #over .card.com-form p { margin-bottom:6px; }
+    #over .card.com-form small { margin-top:6px; } #over .card.com-form button.voltar { margin-top:6px; }
+  }
+  /* ===== cartoes no visual de fliperama de luta (18/10): painel azul-noite com moldura de aco (a mesma do HUD e das caixas de dialogo),
+     titulo em degrade dourado, botao principal menta; campos brancos com texto escuro (legiveis) ===== */
+  .card { background:linear-gradient(180deg, #13213d 0%, #0a1326 100%); color:var(--cream);
+          box-shadow:inset 0 4px 0 #ff8d7d, 0 0 0 2px #1f1a22, 0 0 0 5px #a5a8ad, 0 0 0 6px #e3e6ea, 0 0 0 8px #42587e, 0 16px 36px rgba(0,0,0,.6); border-radius:0; }   /* 23/10: faixa coral no topo e cantos retos (layout) */
+  .card .wm { background:var(--cream); }
+  .card h2 { background:linear-gradient(180deg, #ffffff 0%, #ffe96a 38%, #ffc21f 66%, #e08a1a 100%); -webkit-background-clip:text; background-clip:text; color:transparent;
+             filter:drop-shadow(0 2px 0 #140c0a) drop-shadow(0 0 1px #140c0a); }
+  .card p { color:rgba(243,241,238,.86); opacity:1; }
+  .card small { color:rgba(243,241,238,.62); opacity:1; }
+  .card a.cta, .card .cta { background:var(--mint); color:#0b3b3c; box-shadow:0 4px 0 #3f9a6a; }
+  .card a.cta:active, .card .cta:active { box-shadow:0 2px 0 #3f9a6a; }
+  .card .cta.alt { background:#2b3550; color:var(--cream); box-shadow:0 4px 0 #161d30; }
+  .card button.voltar { color:var(--cream); opacity:.75; }
+  .card input { border-color:#a5a8ad; }
+  .card .campo span { color:var(--cream); }
+  .card .aceite { color:rgba(243,241,238,.9); }
+  .card .aceite a { color:var(--mint); }
+  .card .aceite input { accent-color:#9fe4b2; }
+  .card .aviso { color:#ff8d7d; }
+  /* ===== 23/10 (layout do Magnific, 09 CADASTRO): moldura de tinta, faixa coral com riscos, titulo numa placa dourada, selo com contorno,
+     corpo e aceite em letra de sistema legivel, rotulos maiores, campos creme e botao com letra de fliperama. Nenhum campo, aviso ou link saiu. ===== */
+  #over { background:radial-gradient(ellipse at 50% 46%, rgba(3,10,14,.58) 0%, rgba(3,10,14,.84) 100%); }
+  .card { position:relative; padding-top:27px;
+          box-shadow:0 0 0 2px #0d0a10, 0 0 0 4px #a5a8ad, 0 0 0 5px #e3e6ea, 0 0 0 7px #0d0a10, 0 16px 36px rgba(0,0,0,.6); }
+  .card::before { content:''; position:absolute; left:0; right:0; top:0; height:7px; border-bottom:2px solid #0d0a10; pointer-events:none;
+                  background:linear-gradient(115deg, transparent 0 80%, #ffc8bd 80% 82%, transparent 82% 85%, #ffc8bd 85% 87%, transparent 87% 90%, #ffc8bd 90% 92%, transparent 92%), #ff8d7d; }
+  .card h2 { display:block; width:fit-content; max-width:100%; margin-left:auto; margin-right:auto; padding:6px 12px 5px; justify-self:center; background:linear-gradient(180deg, #6b4416 0%, #3a230a 100%);
+             -webkit-background-clip:border-box; background-clip:border-box; color:#ffd24a; filter:none;
+             border:2px solid #0d0a10; box-shadow:inset 0 0 0 1px #f0c25a, inset 0 3px 0 1px rgba(255,222,150,.35), 0 3px 0 #0d0a10; }
+  .card h2 span { background:linear-gradient(180deg, #ffffff 0%, #ffe96a 38%, #ffc21f 66%, #e08a1a 100%); -webkit-background-clip:text; background-clip:text; color:transparent;
+                  filter:drop-shadow(0 2px 0 #140c0a) drop-shadow(0 0 1px #140c0a); }
+  .card .selo { background:linear-gradient(180deg, #ff9e8f 0%, #e8675a 100%); border:2px solid #0d0a10; border-radius:0; box-shadow:inset 0 2px 0 rgba(255,220,210,.5), 0 3px 0 #0d0a10; text-shadow:1px 1px 0 #7a2a20; }
+  .card p, .card .aceite span { font-family:-apple-system, system-ui, "Segoe UI", Roboto, sans-serif; letter-spacing:0; }
+  .card p { font-size:13px; line-height:1.4; }
+  .card .aceite { font-size:11px; line-height:1.35; gap:10px; align-items:center; }
+  .card .campo span { font-size:8px; letter-spacing:1px; margin:0 0 5px; }
+  .card .campo input { background:#f6edd8; color:#1a1a22; border:2px solid #0d0a10; border-radius:0; box-shadow:inset 0 2px 0 rgba(0,0,0,.14); }
+  .card .campo input::placeholder { color:#6d6a66; }
+  .card .campo input[aria-invalid="true"] { border-color:#ff8d7d; box-shadow:0 0 0 2px #ff8d7d; }
+  .card .aceite input { -webkit-appearance:none; appearance:none; background:#f6edd8; border:2px solid #0d0a10; border-radius:0; box-shadow:inset 0 2px 0 rgba(0,0,0,.14); cursor:pointer; }
+  .card .aceite input:checked { background:#f6edd8 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M2 7.5l3.2 3.2L12 3.6' fill='none' stroke='%230b3b3c' stroke-width='2.6' stroke-linecap='square'/%3E%3C/svg%3E") center/13px no-repeat; }
+  .card .aceite input:focus-visible, .card .campo input:focus-visible { outline:2px solid var(--mint); outline-offset:2px; }
+  .card .aceite input[aria-invalid="true"] { border-color:#ff8d7d; box-shadow:0 0 0 2px #ff8d7d; }
+  .card a.cta, .card .cta { font-size:12px; padding:13px 10px 12px; color:#fffbe8; background:linear-gradient(180deg, #b6f0c9 0%, #6fcf97 100%); border:2px solid #0d0a10; border-radius:0;
+          text-shadow:-1px -1px 0 #0d0a10, 1px -1px 0 #0d0a10, -1px 1px 0 #0d0a10, 1px 1px 0 #0d0a10, 2px 3px 0 #0d0a10;
+          box-shadow:inset 0 2px 0 rgba(255,255,255,.55), inset 0 -4px 0 #3f9a6a, 0 3px 0 #0d0a10; }
+  .card a.cta:active, .card .cta:active { box-shadow:inset 0 2px 0 rgba(255,255,255,.55), inset 0 -2px 0 #3f9a6a, 0 1px 0 #0d0a10; }
+  /* 26/10 (diagramacao no computador): o cartao com formulario usa as duas colunas do celular deitado e cresce com a tela (antes ficava estreito e miudo no meio do gabinete) */
+  body.lay-desk #over .card.com-form { max-width:660px; display:grid; grid-template-columns:minmax(0, 1fr) minmax(0, 1.08fr); column-gap:20px; align-items:start; padding:20px 18px 12px; }
+  body.lay-desk #over .card.com-form > * { grid-column:1; }
+  body.lay-desk #over .card.com-form > form.lead { grid-column:2; grid-row:1 / span 7; margin:0; }
+  body.lay-desk #over .card.com-form .wm { margin:2px auto 8px; } body.lay-desk #over .card.com-form .selo { margin:2px 0 8px; justify-self:center; }
+  body.lay-desk #over .card { zoom:1.15; }
+  /* tablet deitado (mais alto que 520 px): as mesmas duas colunas, um pouco maior */
+  @media (orientation: landscape) and (min-height: 521px) and (min-width: 900px) {
+    body.lay-toque #over .card.com-form { max-width:660px; display:grid; grid-template-columns:minmax(0, 1fr) minmax(0, 1.08fr); column-gap:20px; align-items:start; padding:20px 18px 12px; zoom:1.15; }
+    body.lay-toque #over .card.com-form > * { grid-column:1; }
+    body.lay-toque #over .card.com-form > form.lead { grid-column:2; grid-row:1 / span 7; margin:0; }
+    body.lay-toque #over .card.com-form .wm { margin:2px auto 8px; } body.lay-toque #over .card.com-form .selo { margin:2px 0 8px; justify-self:center; }
+  }
+  @media (min-width: 1500px) and (min-height: 860px) { body.lay-desk #over .card { zoom:1.4; } }
+  /* 23/10 (layout 11 FINAL): no celular deitado, o cartao da recompensa (sem formulario) vai para a direita e o campeao fica a vista na esquerda */
+  html:not(.girado) body.lay-toque.sobre #over:has(> .card.premio:not(.com-form)) { justify-content:flex-end; background:linear-gradient(90deg, rgba(3,10,14,0) 0%, rgba(3,10,14,.2) 42%, rgba(3,10,14,.72) 100%); }
+  html:not(.girado) body.lay-toque.sobre #over .card.premio:not(.com-form) { margin:auto 4% auto auto; max-width:280px; padding:22px 14px 10px; }
+  html:not(.girado) body.lay-toque.sobre #over .card.premio:not(.com-form) .wm { margin-bottom:8px; }
+  html:not(.girado) body.lay-toque.sobre #over .card.premio:not(.com-form) h2 { font-size:9px; margin-bottom:6px; }
+  html:not(.girado) body.lay-toque.sobre #over .card.premio:not(.com-form) .selo { margin:2px 0 8px; }
+  html:not(.girado) body.lay-toque.sobre #over .card.premio:not(.com-form) p { font-size:12px; margin-bottom:8px; }
+  html:not(.girado) body.lay-toque.sobre #over .card.premio:not(.com-form) small { margin-top:8px; }
+  html:not(.girado) body.lay-toque.sobre #over .card.premio:not(.com-form) button.voltar { margin-top:6px; }
+  @media (orientation: landscape) and (max-height: 520px) {
+    #over .card.com-form { padding-top:20px; }
+    #over .card.com-form h2 { margin-bottom:8px; }
+    #over .card.com-form p { font-size:12px; }
+  }
+
+/* ===== Webflow (27/10): o webflow.css da pagina poe margem em h2 e p, fonte e aparencia em botao; aqui so dentro do jogo ===== */
+#over h2, #abre-fora h2, #over p, #abre-fora p { margin-top:0; }
+#over h2, #abre-fora h2 { font-weight:normal; }
+#over button, #abre-fora button, #vire button, #pausa button { -webkit-appearance:none; appearance:none; font-family:"Press Start 2P", monospace; }
+#over .card p, #abre-fora .card p { font-family:-apple-system, system-ui, "Segoe UI", Roboto, sans-serif; }
+.w-embed:has(#palco) { position:static; }
