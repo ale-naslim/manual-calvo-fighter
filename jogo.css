@@ -115,7 +115,7 @@
      (o story VERSUS da campanha) pedindo para girar; o toque liga o "modo deitado por dentro" (html.girado): o jogo gira 90 graus
      e a pessoa so vira o celular. Serve no app que nao gira a tela (Instagram, Facebook); onde o navegador gira, vale o deitado normal. ===== */
   #vire { position:fixed; inset:0; z-index:15; display:none; align-items:center; justify-content:center; cursor:pointer; touch-action:none;
-          background:linear-gradient(180deg, #16336e 0%, #0a1838 100%); }   /* 27/10: a arte nova tem fundo de mapa em cima e embaixo */
+          background:linear-gradient(180deg, #7a2d5c 0%, #c8553a 55%, #2a2430 100%); }   /* 27/10 versao 5: as sobras (Android alto) com as cores do ceu e da rua da arte */
   body.vire #vire { display:flex; }
   #vire .arte { position:relative; width:100%; max-height:100%; aspect-ratio:9 / 16; background:url(extras/vire_fundo.webp) center/cover no-repeat; }
   #vire .toque { position:absolute; left:50%; top:78.2%; width:58%; aspect-ratio:421 / 41; transform:translate(-50%, -50%); background:url(extras/vire_toque.webp) center/contain no-repeat;
@@ -136,6 +136,23 @@
      (extras/vire_fundo.webp, v2710/monta_v2.py vire) deixa o pe livre no fundo de mapa; o painel fica preso ao pe, longe dos rostos
      em qualquer tela, e ganha ABRIR NO NAVEGADOR, so no navegador de app (html.em-app) */
   #vire .painel { top:auto; bottom:max(10px, 2.2%); transform:translateX(-50%); }
+  /* 27/10, versao 3 (key art do duelo): a arte so leva o logo; a oferta entra no painel (nunca sobre rosto); o recorte do cover corta
+     mais embaixo que em cima (o logo fica no ceu) e o painel compacto termina abaixo do queixo do Tonho em todo celular */
+  #vire .arte { background-position:center top; }   /* versao 5: o logo esta no ceu do topo da arte; o corte das telas baixas sai do pe (rua) */
+  #vire .arte { height:100%; max-height:none; aspect-ratio:auto; }   /* a arte cobre a tela inteira tambem no Android alto (sem faixa reta em cima e embaixo); la o corte sai das laterais */
+  /* versao 4 (poster dos dois times): painel mais baixo, GIRE O CELULAR e ABRIR NO NAVEGADOR lado a lado na ultima linha */
+  #vire .painel { width:min(92%, 430px); }
+  #vire .painel .toque { width:min(84%, 330px); }
+  #vire .painel .oferta { width:min(96%, 400px); }
+  #vire .painel .linha { display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:6px 8px; width:100%; }   /* sem espaco (320 px), o botao desce para a linha de baixo */
+  #vire .painel .linha .gire { gap:5px; flex:0 0 auto; }
+  #vire .painel .linha .gire i { width:30px; height:18px; }
+  #vire .painel .linha .gire span { font-size:7px; }
+  #vire .painel .linha #b-navegador { width:auto; flex:0 0 auto; margin-top:0; padding:7px 7px 6px; font-size:7px; gap:5px; }
+  #vire .painel .linha #b-navegador i { width:8px; height:8px; background-size:8px 2px, 2px 8px; }
+  #vire .painel .linha #b-navegador i::after { width:10px; }
+  #vire .painel { gap:6px; padding:9px 10px 10px; }
+  #vire .painel .oferta { width:96%; aspect-ratio:978 / 38; background:url(extras/vire_oferta.webp) center/contain no-repeat; }
   #b-navegador { display:none; align-items:center; justify-content:center; gap:8px; width:88%; margin-top:2px; padding:9px 10px 8px; cursor:pointer;
                  font-family:"Press Start 2P", monospace; font-size:8px; line-height:1; letter-spacing:.04em; color:#f3f1ee; background:#0b3b3c;
                  border:2px solid #9fe4b2; box-shadow:0 3px 0 #0d0a10; border-radius:0; touch-action:manipulation; }
@@ -149,8 +166,8 @@
   #abre-fora .card { margin:auto; }
   #abre-fora .af-pontos { display:inline-block; padding:0 5px; border:1.5px solid currentColor; border-radius:5px; font-weight:800; letter-spacing:.1em; }
   #abre-fora .card .cta { margin-top:4px; }
-  @media (max-height: 600px) {   /* iPhone pequeno dentro do app (375x560): painel mais baixo para nao encostar na oferta da arte */
-    #vire .painel { width:72%; gap:5px; padding:7px 8px 8px; bottom:8px; }
+  @media (max-height: 600px) {   /* iPhone pequeno dentro do app (375x560): painel mais baixo */
+    #vire .painel { gap:5px; padding:7px 8px 8px; bottom:8px; }
     #vire .gire i { width:38px; height:22px; }
     #vire .painel .toque { width:84%; }
     #b-navegador { padding:6px 8px 5px; font-size:7px; }
@@ -261,9 +278,12 @@
     body.lay-toque #over .card.com-form .wm { margin:2px auto 8px; } body.lay-toque #over .card.com-form .selo { margin:2px 0 8px; justify-self:center; }
   }
   @media (min-width: 1500px) and (min-height: 860px) { body.lay-desk #over .card { zoom:1.4; } }
-  /* 23/10 (layout 11 FINAL): no celular deitado, o cartao da recompensa (sem formulario) vai para a direita e o campeao fica a vista na esquerda */
-  html:not(.girado) body.lay-toque.sobre #over:has(> .card.premio:not(.com-form)) { justify-content:flex-end; background:linear-gradient(90deg, rgba(3,10,14,0) 0%, rgba(3,10,14,.2) 42%, rgba(3,10,14,.72) 100%); }
-  html:not(.girado) body.lay-toque.sobre #over .card.premio:not(.com-form) { margin:auto 4% auto auto; max-width:280px; padding:22px 14px 10px; }
+  /* 23/10 (layout 11 FINAL): no celular deitado, o cartao da recompensa (sem formulario) fica compacto e o campeao fica a vista ao lado dele */
+  html:not(.girado) body.lay-toque.sobre #over .card.premio:not(.com-form) { max-width:280px; padding:22px 14px 10px; }
+  /* 28/10 ("o personagem num canto, o texto no outro e muito espaco vazio"): campeao e cartao formam um par centrado na tela do jogo
+     (computador e celular deitado); o x do cartao vem do jogo (scFim.par) em --par-x; o fundo escurece pouco, para o campeao ficar aceso */
+  #over.par:has(> .card.premio:not(.com-form)) { justify-content:flex-start; background:rgba(3,10,14,.3); }
+  #over.par > .card.premio:not(.com-form) { margin:auto auto auto var(--par-x, auto); }
   html:not(.girado) body.lay-toque.sobre #over .card.premio:not(.com-form) .wm { margin-bottom:8px; }
   html:not(.girado) body.lay-toque.sobre #over .card.premio:not(.com-form) h2 { font-size:9px; margin-bottom:6px; }
   html:not(.girado) body.lay-toque.sobre #over .card.premio:not(.com-form) .selo { margin:2px 0 8px; }

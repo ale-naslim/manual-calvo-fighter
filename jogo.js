@@ -44,7 +44,7 @@ function escolheLayout(){
    cadastro vem de window.CVC_API (head da pagina do Webflow); sem ele, /api/lead do proprio site. */
 const BASE_ARQ = (() => { try { const s = document.currentScript && document.currentScript.src; return s ? s.replace(/[^/]*$/, '') : ''; } catch(e){ return ''; } })();
 const API_LEAD = (typeof window.CVC_API === 'string' && window.CVC_API) || '/api/lead';
-function urlG(n){ return BASE_ARQ + 'gabinete/' + n + '?v=/*VSHEET*/4285/*/VSHEET*/'; }
+function urlG(n){ return BASE_ARQ + 'gabinete/' + n + '?v=/*VSHEET*/713/*/VSHEET*/'; }
 function poe(el, x, y, w, h){ el.style.left = x + 'px'; el.style.top = y + 'px'; el.style.width = w + 'px'; el.style.height = h + 'px'; }
 const CTL = [['b-p', 'soco', 'p'], ['b-k', 'chute', 'k'], ['b-s', 'especial', 's'], ['b-h', 'hiper', 'h'], ['p-start', 'start', 'start'], ['p-som', 'som', 'som']];
 function aplicaLayout(lay){
@@ -698,14 +698,14 @@ function decodifica(im, ok){ const f = () => ok(im); if (im.decode) im.decode().
 (function(){
   const im = new Image(); IMGS_PRONTAS.total++; let tentouPng = false;
   im.onload = ()=>{ decodifica(im, () => { SHEET = im; SHEET_OK = true; IMGS_PRONTAS.n++; }); };
-  im.onerror = ()=>{ if (!tentouPng){ tentouPng = true; im.src = BASE_ARQ + 'sheet.png?v=/*VSHEET*/4285/*/VSHEET*/'; return; } IMGS_PRONTAS.n++; };
-  im.src = BASE_ARQ + 'sheet.webp?v=/*VSHEET*/4285/*/VSHEET*/';
+  im.onerror = ()=>{ if (!tentouPng){ tentouPng = true; im.src = BASE_ARQ + 'sheet.png?v=/*VSHEET*/713/*/VSHEET*/'; return; } IMGS_PRONTAS.n++; };
+  im.src = BASE_ARQ + 'sheet.webp?v=/*VSHEET*/713/*/VSHEET*/';
 })();
 function carregaCenario(nome){
   if (STAGES[nome] !== undefined) return;
   STAGES[nome] = null; const im = new Image(); IMGS_PRONTAS.total++;
   im.onload = ()=>{ decodifica(im, () => { STAGES[nome] = im; IMGS_PRONTAS.n++; }); }; im.onerror = ()=>{ IMGS_PRONTAS.n++; };
-  im.src = BASE_ARQ + 'stages/' + nome + '.png?v=/*VSHEET*/4285/*/VSHEET*/';
+  im.src = BASE_ARQ + 'stages/' + nome + '.png?v=/*VSHEET*/713/*/VSHEET*/';
 }
 /* carga adiada: roda depois do evento load + 1,2 s, no tempo ocioso (a pagina "termina de carregar" mais cedo no navegador do anuncio) */
 const _ADIADAS = []; let _ADIA_OK = false;
@@ -1646,14 +1646,26 @@ function drawSombra(l){
   cx.fillStyle = 'rgba(10,20,20,' + (0.3 * k).toFixed(2) + ')';
   cx.beginPath(); cx.ellipse(Math.round(l.x - CAM), CHAO + 4, rx, ry, 0, 0, Math.PI * 2); cx.fill();
 }
-/* grade em perspectiva rolando (fundo de hiper e finalizacao) */
+/* ponto de fuga do chao dos cenarios (27/10, pedido: "deixe a malha na mesma perspectiva do cenario"). Medido na arte base de
+   392 px: piso em perspectiva de um ponto, fuga no centro da arte, horizonte em FUGA_Y e foco FUGA_F (pela largura e pelo passo
+   das casas do xadrez do salao). As artes largas (_largo, _largo2) sao a base ampliada pela largura e ancorada embaixo, entao o
+   horizonte desce na mesma conta. drawStage guarda em PALCO_FUGA onde isso cai na tela (com a rolagem do cenario). */
+const FUGA_Y = { rua: 125, barbearia: 128, escritorio: 111, salao: 121, fantasias: 133, banca: 124 }, FUGA_F = 303;
+let PALCO_FUGA = { x: W / 2, y: 121, f: FUGA_F };
+function fugaPalco(nome, q, x){ const yb = FUGA_Y[nome] || 121; PALCO_FUGA = { x: x, y: H - (H - yb) * q, f: FUGA_F * q }; }
+/* grade em perspectiva rolando (fundo de hiper e finalizacao): no ponto de fuga e no horizonte do cenario da luta, com o passo de
+   profundidade de um piso de verdade (1/(y - horizonte) cresce igual a cada ladrilho). Chamar dentro do mesmo zoom do cenario. */
 function drawGrade3D(t, cor){
-  const hz = 92; cx.save(); cx.globalAlpha = 0.32; cx.strokeStyle = cor || MINT; cx.lineWidth = 1;
-  cx.beginPath();
-  for (let i = 0; i < 10; i++){ const k = ((i + (t * 0.02) % 1) / 10); const y = hz + k * k * (H - hz); cx.moveTo(0, Math.round(y) + 0.5); cx.lineTo(W, Math.round(y) + 0.5); }
-  for (let i = -8; i <= 8; i++){ cx.moveTo(W/2 + i * 8, hz); cx.lineTo(W/2 + i * 70, H); }
+  const vx = PALCO_FUGA.x, hz = PALCO_FUGA.y, base = H + 24 - hz, T = 0.55;   /* T: lado do ladrilho / altura da camera */
+  const du = T / PALCO_FUGA.f, fase = (t * 0.02) % 1, perto = 16;            /* perto: as linhas que fogem comecam a 16 px do horizonte */
+  cx.save(); cx.strokeStyle = cor || MINT; cx.lineWidth = 1;
+  /* linhas de profundidade: param quando ficam a menos de 3 px uma da outra (perto do horizonte viravam uma faixa cheia) e somem aos poucos */
+  for (let n = 0; n < 80; n++){ const u = 1 / base + (n - fase) * du; if (u <= 0) continue; const d = 1 / u, passoY = d - 1 / (u + du); if (passoY < 3) break;
+    const y = Math.round(hz + d) + 0.5; cx.globalAlpha = 0.32 * Math.min(1, (passoY - 3) / 7); cx.beginPath(); cx.moveTo(-60, y); cx.lineTo(W + 60, y); cx.stroke(); }
+  cx.globalAlpha = 0.32; cx.beginPath(); const passo = T * base;
+  for (let i = -16; i <= 16; i++){ const xb = vx + i * passo; cx.moveTo(vx + (xb - vx) * perto / base, hz + perto); cx.lineTo(xb, hz + base); }
   cx.stroke();
-  cx.globalAlpha = 0.5; cx.fillStyle = cor || MINT; cx.fillRect(0, hz, W, 1);
+  cx.globalAlpha = 0.5; cx.fillStyle = cor || MINT; cx.fillRect(-60, Math.round(hz), W + 120, 1);
   cx.restore();
 }
 
@@ -1986,7 +1998,7 @@ function chaveFoto(a, b, st){
 }
 function carregaFoto(a, b, st){
   const k = chaveFoto(a, b, st); if (!k || FOTOS[k] !== undefined) return;
-  FOTOS[k] = null; const im = new Image(); im.onload = () => { FOTOS[k] = im; }; im.onerror = () => {}; im.src = BASE_ARQ + 'fotos/' + k + '.png?v=/*VSHEET*/4285/*/VSHEET*/';
+  FOTOS[k] = null; const im = new Image(); im.onload = () => { FOTOS[k] = im; }; im.onerror = () => {}; im.src = BASE_ARQ + 'fotos/' + k + '.png?v=/*VSHEET*/713/*/VSHEET*/';
 }
 
 /* ---------------- MOMENTO COROA ---------------- */
@@ -2147,7 +2159,7 @@ function drawMomentoExtras(){
 function drawSombraX(x, rx){ cx.fillStyle = 'rgba(10,20,20,.3)'; cx.beginPath(); cx.ellipse(Math.round(x - CAM), CHAO + 4, rx, 3, 0, 0, Math.PI * 2); cx.fill(); }
 /* folha dos extras de historia (extras/historia.png): desenha pela base, no centro */
 const HISTMAP = /*HISTMAP*/{"estag_anda":[0,0,48,115,24],"estag_aponta":[50,0,71,115,24],"estag_ri":[123,0,46,107,20],"kid_aponta":[171,0,56,80,18],"kid_corre":[229,0,50,76,36],"kid_ri":[281,0,42,72,12],"espelho_costas":[325,0,20,40,10],"espelho_frente":[347,0,20,40,10]}/*/HISTMAP*/;
-const HIST = new Image(); adiaCarga(() => { if (!HIST.src) HIST.src = BASE_ARQ + 'extras/historia.png?v=/*VSHEET*/4285/*/VSHEET*/'; });   /* figurantes dos momentos: depois do titulo */
+const HIST = new Image(); adiaCarga(() => { if (!HIST.src) HIST.src = BASE_ARQ + 'extras/historia.png?v=/*VSHEET*/713/*/VSHEET*/'; });   /* figurantes dos momentos: depois do titulo */
 function drawHist(nome, x, y, flip, o){
   const sl = HISTMAP[nome]; if (!sl || !HIST.complete || !HIST.naturalWidth) return false;
   o = o || {}; const [sx, sy, sw, sh, ax] = sl, sc = o.sc || 1, dw = Math.round(sw * sc), dh = Math.round(sh * sc), px = Math.round(x), py = Math.round(y);
@@ -2181,7 +2193,7 @@ function drawMomentoFoto(){
    O rosto da crianca (ou do estagiario, no escritorio) em close numa faixa diagonal e a pergunta em letreiro grande, ~2 s.
    Ilustracao: extras/close_<sobrinho|estagiario>.png (Magnific); enquanto ela nao existe, o desenho da propria cena, ampliado. */
 const CLOSE = {};
-function carregaClose(n){ if (CLOSE[n] !== undefined) return; CLOSE[n] = null; const im = new Image(); im.onload = () => decodifica(im, () => { CLOSE[n] = im; }); im.onerror = () => {}; im.src = BASE_ARQ + 'extras/close_' + n + '.png?v=/*VSHEET*/4285/*/VSHEET*/'; }
+function carregaClose(n){ if (CLOSE[n] !== undefined) return; CLOSE[n] = null; const im = new Image(); im.onload = () => decodifica(im, () => { CLOSE[n] = im; }); im.onerror = () => {}; im.src = BASE_ARQ + 'extras/close_' + n + '.png?v=/*VSHEET*/713/*/VSHEET*/'; }
 const MOM_TIT = 46;   /* 26/10: 56 -> 46 quadros (lutas mais rapidas) */
 /* o momento pode ser pulado com um toque logo que o titulo assenta (antes so depois de toda a legenda) */
 function momentoPulavel(m){ return MOM_TIT + 14; }                                        /* quadros do cartao de titulo do momento */
@@ -2412,7 +2424,7 @@ const CORTESMAP = /*CORTESMAP*/{"beto_pintado":{"beto_arr_0":[448,0,64,121,31.7]
 const BASE_VAR = { beto: 'beto_pintado' }, BVAR = {};
 function carregaBaseVar(){
   for (const lut in BASE_VAR){ const k = BASE_VAR[lut]; if (!CORTESMAP[k] || BVAR[lut]) continue;
-    const o = BVAR[lut] = { ok: false }, im = new Image(); im.onload = () => { o.img = im; o.ok = true; }; im.src = BASE_ARQ + 'criador/cortes/' + k + '.png?v=/*VSHEET*/4285/*/VSHEET*/'; }
+    const o = BVAR[lut] = { ok: false }, im = new Image(); im.onload = () => { o.img = im; o.ok = true; }; im.src = BASE_ARQ + 'criador/cortes/' + k + '.png?v=/*VSHEET*/713/*/VSHEET*/'; }
 }
 function slotBase(nome){ if (!nome) return null; const i = nome.indexOf('_'); if (i < 0) return null; const lut = nome.slice(0, i), v = BVAR[lut]; if (!v || !v.ok) return null; const m = CORTESMAP[BASE_VAR[lut]]; return (m && m[nome]) ? [v.img, m[nome]] : null; }
 /* qual folha e qual mapa desenham um quadro: a do capacete do Beto quando ela ja chegou, senao o sheet */
@@ -2756,13 +2768,13 @@ function drawStage(nome, escuro){
     for (const v of (W > 480 || STAGE_W > 480) ? ['_largo2', '_largo'] : ['_largo']){ const kl = nome + v; if (STAGES[kl] === undefined) carregaCenario(kl); if (STAGES[kl]){ im = STAGES[kl]; largo = v; break; } }
   }
   if (im){ const folga = STAGE_W - W, ox = folga > 0 ? -Math.round(CAM * (im.width - W) / folga) : -Math.round((im.width - W) / 2);
-    if (im.width < W){ const k = W / im.width; cx.drawImage(im, 0, 0, im.width, im.height, 0, Math.round(H - im.height * k), W, Math.round(im.height * k)); }   /* enquanto a arte larga carrega */
-    else cx.drawImage(im, 0, 0, im.width, im.height, ox, 0, im.width, im.height);
+    if (im.width < W){ const k = W / im.width; cx.drawImage(im, 0, 0, im.width, im.height, 0, Math.round(H - im.height * k), W, Math.round(im.height * k)); fugaPalco(nome, im.width / 392 * k, W / 2); }   /* enquanto a arte larga carrega */
+    else { cx.drawImage(im, 0, 0, im.width, im.height, ox, 0, im.width, im.height); fugaPalco(nome, im.width / 392, ox + im.width / 2); }
     if (SCENE === scFight) for (const p of (PLACAS[nome] || [])){ const q = largo ? placaLarga(p[0], p[1], p[2], p[3], p[4], largo) : p; if (!q) continue; const [x, y, w, h] = q; ocupa(caixaTela(x + ox, y, x + ox + w, y + h), 3); } }
   else {
     cx.fillStyle = c.cor; cx.fillRect(0, 0, W, CHAO - 12);
     cx.fillStyle = c.chao; cx.fillRect(0, CHAO - 12, W, H - CHAO + 12);
-    cx.fillStyle = c.chao2; cx.fillRect(0, CHAO + 8, W, 2);
+    cx.fillStyle = c.chao2; cx.fillRect(0, CHAO + 8, W, 2); fugaPalco(nome, W / 392, W / 2);
   }
   if (escuro) { cx.fillStyle = 'rgba(0,0,0,' + escuro + ')'; cx.fillRect(0, 0, W, H); }
 }
@@ -2945,7 +2957,7 @@ function fitaTitulo(str, cxm, y){
 }
 /* ---------------- logo do CALVO FIGHTER (nome novo, 18/10): arte do Magnific recortada em extras/logo_cf.png, desenhada
    no tamanho dela (sem reamostrar); enquanto nao carrega, o nome sai em letra de fliperama com degrade ---------------- */
-const LOGO_CF = (() => { const im = new Image(); im.src = BASE_ARQ + 'extras/logo_cf.png?v=/*VSHEET*/4285/*/VSHEET*/'; return im; })();
+const LOGO_CF = (() => { const im = new Image(); im.src = BASE_ARQ + 'extras/logo_cf.png?v=/*VSHEET*/713/*/VSHEET*/'; return im; })();
 function logoCF(cxm, y, larg, g){
   g = g || cx; const ok = LOGO_CF.complete && LOGO_CF.naturalWidth;
   if (ok){ const k = Math.min(1, larg / LOGO_CF.naturalWidth), w = Math.round(LOGO_CF.naturalWidth * k), h = Math.round(LOGO_CF.naturalHeight * k); g.drawImage(LOGO_CF, Math.round(cxm - w / 2), y, w, h); return h; }
@@ -3080,7 +3092,7 @@ const scSelect = {
   fundo(x0, x1){ const g = cx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#16336e'); g.addColorStop(1, '#0a1838'); cx.fillStyle = g; cx.fillRect(x0, 0, x1 - x0, H);
     cx.fillStyle = 'rgba(120,170,255,.07)'; for (let x = Math.floor(x0 / 16) * 16; x < x1; x += 16) cx.fillRect(x, 0, 1, H); for (let y = 0; y < H; y += 16) cx.fillRect(x0, y, x1 - x0, 1);
     for (let y = 0; y < H; y += 8){ cx.fillStyle = 'rgba(0,0,0,.12)'; cx.fillRect(x0, y, x1 - x0, 1); } },
-  enter(arg){ carregaBaseVar(); if (!HIST.src) HIST.src = BASE_ARQ + 'extras/historia.png?v=/*VSHEET*/4285/*/VSHEET*/'; this.i = (arg && arg.i) || 0; this.col = 0; this.j = 3; this.ok = 0; this.ok2 = 0; musica('titulo'); this.grid = ORDEM; },
+  enter(arg){ carregaBaseVar(); if (!HIST.src) HIST.src = BASE_ARQ + 'extras/historia.png?v=/*VSHEET*/713/*/VSHEET*/'; this.i = (arg && arg.i) || 0; this.col = 0; this.j = 3; this.ok = 0; this.ok2 = 0; musica('titulo'); this.grid = ORDEM; },
   voltar(){ SFX.back(); go(scTitle); },
   confirma(){ if (this.i === 6){ trocaDif(1); SFX.blip(); return; } this.ok = 1; SFX.ok(); avisaPagina('escolheu', { lutador: this.grid[this.i], dificuldade: LUTA.dif }); },
   toque(x, y){
@@ -3414,8 +3426,8 @@ const scFight = {
     comZoom(0.55, () => { if (cinza > 0.02) cx.filter = 'saturate(' + (1 - 0.75 * cinza).toFixed(2) + ') brightness(' + (1 - 0.18 * cinza).toFixed(2) + ')'; drawStage(LUTA.cenario, 0); cx.filter = 'none'; });
     comZoom(0.8, () => nevoaHorizonte(LUTA.cenario));   /* a nevoa fica entre o fundo (55% do zoom) e os lutadores (100%) */
     if (ESCURO > 0.02){ cx.fillStyle = 'rgba(0,0,0,' + ESCURO.toFixed(2) + ')'; cx.fillRect(-8, -8, W + 16, H + 16); }
-    if (HIPER && HIPER.fase === 'efeito'){ cx.fillStyle = 'rgba(4,20,22,.5)'; cx.fillRect(-8, -8, W + 16, H + 16); raiosFundo(HIPER.l.C.cor2, FRAME, 0.1, W / 2, 150); drawGrade3D(FRAME, HIPER.l.C.cor2); }   /* fundo trocado do HIPER: raios na cor de quem soltou + chao em perspectiva */
-    else if (FATAL){ cx.fillStyle = 'rgba(4,8,12,.35)'; cx.fillRect(-8, -8, W + 16, H + 16); drawGrade3D(FRAME, FATAL.l.C.cor2); }
+    if (HIPER && HIPER.fase === 'efeito'){ cx.fillStyle = 'rgba(4,20,22,.5)'; cx.fillRect(-8, -8, W + 16, H + 16); raiosFundo(HIPER.l.C.cor2, FRAME, 0.1, W / 2, 150); comZoom(0.55, () => drawGrade3D(FRAME, HIPER.l.C.cor2)); }   /* fundo trocado do HIPER: raios na cor de quem soltou + chao em perspectiva */
+    else if (FATAL){ cx.fillStyle = 'rgba(4,8,12,.35)'; cx.fillRect(-8, -8, W + 16, H + 16); comZoom(0.55, () => drawGrade3D(FRAME, FATAL.l.C.cor2)); }   /* 27/10: a grade no zoom do cenario, para o ponto de fuga bater */
     /* luz de palco (a la fatality): o cenario apaga em volta dos dois; lutadores, efeitos e a notificacao ficam acesos por cima */
     if (LUTA.fase === 'finaliza' && LUTA.finalizador){ const t = LUTA.t, bat = (t % 40) < 8 ? 1 - (t % 40) / 8 : 0, m = telaZoom((LUTA.finalizador.x + LUTA.tonto.x) / 2 - CAM, CHAO - 64);
       luzPalco(m[0], m[1], Math.max(110, Math.abs(LUTA.finalizador.x - LUTA.tonto.x) / 2 + 74) + bat * 10, Math.min(0.88, t / 36)); }
@@ -3499,12 +3511,13 @@ function citacao(l, texto){
 }
 function minimoPagina(sc){ return Math.max(40, Math.round(leitura(sc.paginas[sc.pag] || '') * 0.35)); }
 /* texto do final: logo abaixo do VOCE VENCEU!, no ceu do cenario, para nao cobrir o campeao (pedido de 18/10). Devolve a base da caixa. */
-function caixaFala(texto, esq, rodape, larg){
-  const bw = larg || W - 20 - 2 * MARGEM, linhas = wrap(texto, Math.floor((bw - 20) / 8)), h = 14 + linhas.length * 10 + (rodape ? 10 : 0), y0 = 36;   /* rodape: linha do aviso de seguir dentro da caixa */
-  caixaDialogo(10 + MARGEM, y0, bw, h, esq ? MINT : CORAL);
-  linhas.forEach((ln, i) => txtL(ln, 20 + MARGEM, y0 + 8 + i * 10, CREME));
+function caixaFala(texto, esq, rodape, larg, x, y){
+  const bw = larg || W - 20 - 2 * MARGEM, linhas = wrap(texto, Math.floor((bw - 20) / 8)), h = altoFala(texto, rodape, bw), y0 = y === undefined ? 36 : y, x0 = x === undefined ? 10 + MARGEM : x;   /* rodape: linha do aviso de seguir dentro da caixa */
+  caixaDialogo(x0, y0, bw, h, esq ? MINT : CORAL);
+  linhas.forEach((ln, i) => txtL(ln, x0 + 10, y0 + 8 + i * 10, CREME));
   return y0 + h;
 }
+function altoFala(texto, rodape, bw){ return 14 + wrap(texto, Math.floor((bw - 20) / 8)).length * 10 + (rodape ? 10 : 0); }
 function alargaArena(antes){
   if (typeof scFight === 'undefined' || SCENE !== scFight || !L1 || !L2 || W <= STAGE_W) return;
   const d = W - STAGE_W; STAGE_W = W; L1.x += d / 2; L2.x += d / 2; for (const p of PROJS) p.x += d / 2; CAM = 0;
@@ -3696,8 +3709,9 @@ const scContinue = {
   }
 };
 /* ---------------- CENA: final + recompensa ---------------- */
+const CAMP_E = 30, CAMP_D = 44, PAR_VAO = 10, PAR_VAO_C = 16;   /* par do final: meia largura do campeao (esquerda, direita), vao ate a caixa e ate o cartao */
 const scFim = {
-  enter(){ musica('fim'); this.pag = 0; this.mostrou = false; this.cen = CHARS[LUTA.jogador].stage; carregaCenario(this.cen); /* o campeao comemora em casa */ this.l = novoLutador(LUTA.jogador, 1, 'p1'); this.l.x = 200; this.l.estado = 'win'; this.l.winT = 30; CAM = 0;
+  enter(){ musica('fim'); this.pag = 0; this.mostrou = false; this.lx = undefined; this.kp = 0; this.pc = null; this.cen = CHARS[LUTA.jogador].stage; carregaCenario(this.cen); /* o campeao comemora em casa */ this.l = novoLutador(LUTA.jogador, 1, 'p1'); this.l.x = 200; this.l.estado = 'win'; this.l.winT = 30; CAM = 0;
     const C = CHARS[LUTA.jogador];
     this.paginas = C.time === 'calvo'
       ? ['O TIME CABELUDO CAIU.', 'O TIME CALVO VENCEU DE CABECA ERGUIDA.', 'NAO EXISTE CURA DA NOITE PRO DIA. MAS O TRATAMENTO CERTO FAZ MARAVILHAS COM O TEMPO.', 'VOCE LIBEROU 30% OFF NA SUA AVALIACAO.']
@@ -3706,11 +3720,27 @@ const scFim = {
   },
   toque(){ this.tocou = true; },
   voltar(){ if (!this.mostrou){ SFX.back(); go(scTitle); } },
-  /* 23/10 (layout do Magnific, 11 FINAL): no celular deitado o cartao da recompensa fica a direita e o campeao e o VOCE VENCEU! vao para a esquerda (o campeao segue a vista) */
-  premioLado(){ return this.mostrou && LAY === 'toque' && HUD_SOBRE && !GIRADO && LEAD.ok; },
-  update(){ this.t++; FRAME++; this.kp = Math.max(0, Math.min(1, (this.kp || 0) + (this.premioLado() ? 0.06 : -0.06))); const kp = ease(this.kp);
-    /* 26/10 ("no final o texto cobre o personagem"): enquanto o texto passa, o campeao fica no terco direito e a caixa ocupa a esquerda */
-    const lendo = this.pag < this.paginas.length, alvo = lendo ? W * 0.74 : W / 2 + 8 - kp * (W * 0.2);
+  /* 28/10 ("deixa o personagem num canto, o texto no outro e muito espaco vazio"): campeao e texto formam um par centrado, a caixa
+     ao lado dele na altura do peito (26/10: sem cobrir o campeao). Com o cartao da recompensa (sem formulario), o campeao fica a
+     esquerda do cartao e os dois se centram na tela do jogo, no computador e no celular deitado; se nao couber, o cartao fica no meio.
+     CAMP_E e CAMP_D: quanto o campeao comemorando ocupa a esquerda e a direita do seu x (o punho sobe do lado direito). */
+  par(){ const bw = Math.round(Math.max(170, Math.min(230, W * 0.5))), x0 = Math.round((W - (bw + PAR_VAO + CAMP_E + CAMP_D)) / 2);
+    return { bw, xb: x0, xl: x0 + bw + PAR_VAO + CAMP_E }; },
+  posCartao(){   /* medido a cada 15 quadros: largura do cartao na escala do jogo -> x do campeao e margem do cartao (px da pagina) */
+    if (this.pc && FRAME - this.pcT < 15) return this.pc.ok ? this.pc : null;
+    const over = document.getElementById('over'), card = document.getElementById('card');
+    if (!over.classList.contains('on') || !card.classList.contains('premio') || card.classList.contains('com-form')){ this.pc = null; return null; }   /* sem cartao: mede de novo assim que ele abrir */
+    this.pcT = FRAME; const pc = this.pc = { ok: false };
+    const r = document.getElementById('scr').getBoundingClientRect(), k = r.width / W, wc = card.getBoundingClientRect().width / k, grupo = CAMP_E + CAMP_D + PAR_VAO_C + wc;
+    if (!(k > 0) || grupo > W - 12 - 2 * MARGEM) return null;
+    const x0 = (W - grupo) / 2, z = parseFloat(getComputedStyle(card).zoom) || 1, pad = parseFloat(getComputedStyle(over).paddingLeft) || 0;
+    pc.ok = true; pc.xl = Math.round(x0 + CAMP_E); pc.margem = Math.round((r.left + (x0 + CAMP_E + CAMP_D + PAR_VAO_C) * k - pad) / z); return pc;
+  },
+  premioLado(){ return this.mostrou && !GIRADO && LEAD.ok && (LAY === 'desk' || (LAY === 'toque' && HUD_SOBRE)) && !!this.posCartao(); },
+  update(){ this.t++; FRAME++; const lado = this.premioLado(); this.kp = Math.max(0, Math.min(1, (this.kp || 0) + (lado ? 0.06 : -0.06)));
+    { const over = document.getElementById('over');   /* o cartao segue o par (classe par + --par-x no proprio #over) */
+      if (lado){ const m = this.pc.margem + 'px'; if (over.style.getPropertyValue('--par-x') !== m) over.style.setProperty('--par-x', m); over.classList.add('par'); } else over.classList.remove('par'); }
+    const lendo = this.pag < this.paginas.length, alvo = lendo ? this.par().xl : lado ? this.pc.xl : W / 2 + 8;
     this.lx = this.lx === undefined ? alvo : this.lx + (alvo - this.lx) * 0.12; this.l.x = Math.round(this.lx);
     if (this.t > minimoPagina(this) && (HIT.p1.start || HIT.p1.p || HIT.p1.k || this.tocou) && !this.mostrou){ this.tocou = false; this.pag++; SFX.ok(); this.t = 0; if (this.pag >= this.paginas.length){ this.mostrou = true; mostraRecompensa(); } }
     /* 23/10 (layout): chuva de confete mais cheia, em papeis de 2x4 que viram de lado no plano da tela (nada de giro de papel em 3D) */
@@ -3728,8 +3758,12 @@ const scFim = {
     vinhetaBordas();
     drawSpr('fx_coroa', this.l.x - CAM, this.l.y - 118 * this.l.C.ev - 4 + Math.round(Math.sin((this.t || 0) * 0.12) * 3), false, { sc: 1 });   /* a coroa do campeao, como na referencia do final */
     for (const f of FX) if (f.tipo === 'conf'){ cx.fillStyle = f.cor; const dep = ((f.t + f.fase) >> 3) & 1; cx.fillRect(Math.round(f.x), Math.round(f.y), dep ? 4 : 2, dep ? 2 : 4); }
-    const kp = ease(this.kp || 0); anuncio('VOCE VENCEU!', Math.round(Math.max(larguraT('VOCE VENCEU!', 2) / 2 + 6 + MARGEM, W / 2 - kp * W * 0.26)), 20, 2, 'ouro', this.mostrou ? 60 : (this.t || 0), Infinity, { faixa: false, reto: true });
-    if (this.pag < this.paginas.length){ const bw = Math.round(W * 0.74 - 52 - 10 - MARGEM), yb = caixaFala(this.paginas[this.pag], true, true, bw), xr = 10 + MARGEM + bw;
+    /* o VOCE VENCEU! fica no alto, no meio do par; com o cartao ao lado ele some (o cartao ja diz VOCE VENCEU O TIME...) */
+    const kp = ease(this.kp || 0);
+    if (kp < 0.99){ cx.save(); cx.globalAlpha = 1 - kp; anuncio('VOCE VENCEU!', Math.round(W / 2), 20, 2, 'ouro', this.mostrou ? 60 : (this.t || 0), Infinity, { faixa: false, reto: true }); cx.restore(); }
+    if (this.pag < this.paginas.length){ const P = this.par(), tx = this.paginas[this.pag], h = altoFala(tx, true, P.bw),
+        yc = this.l.y - Math.round(118 * this.l.C.ev * 0.58), y0 = Math.max(40, Math.min(H - 8 - h, yc - Math.round(h / 2))),
+        yb = caixaFala(tx, true, true, P.bw, P.xb, y0), xr = P.xb + P.bw;
       if (this.t > minimoPagina(this)){                 /* seta de "tem mais" e o aviso de seguir DENTRO da caixa (26/10: solto embaixo dela, cobria a placa do cenario) */
         txtT('\u25bc', xr - 14, yb - 12 + ((FRAME >> 3) & 1), AMARELO);
         const s = LAY === 'toque' ? 'TOQUE CONTINUA' : LAY !== 'desk' ? 'SOCO CONTINUA' : 'Z CONTINUA'; txtR(s, xr - 22, yb - 12, (FRAME & 16) ? 'rgba(243,241,238,.8)' : 'rgba(243,241,238,.45)'); } }
@@ -3818,7 +3852,7 @@ function mostraRecompensa(){
   };
   if (comForm){ let enviado = false; ligaFormLead((email, dig, robo) => { if (!enviado && !robo){ enviado = true; enviaLead({ email, whatsapp: dig, venceu: true, momento: 'final' }); } abreAvaliacao(); }); }
   else bt.addEventListener('click', abreAvaliacao);
-  document.getElementById('cta-voltar').addEventListener('click', ()=>{ over.classList.remove('on'); go(scTitle); });
+  document.getElementById('cta-voltar').addEventListener('click', ()=>{ over.classList.remove('on', 'par'); go(scTitle); });
   avisaPagina('bonus_liberado');
 }
 
